@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Karaoke — Bóng Phù Hoa</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Montserrat:wght@300;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg1: #2b0036;
+    --bg2: #6b2a6b;
+    --accent: #ffd6e0;
+    --card: rgba(255,255,255,0.06);
+    --glass: rgba(255,255,255,0.06);
+  }
+  html,body{height:100%;margin:0;font-family: 'Montserrat', sans-serif;background: radial-gradient( circle at 10% 10%, #1b0426 0%, #3c1238 30%, #2b0026 100%); color:#fff;}
+  .page{
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+    padding:24px;
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(255,255,255,0.04), transparent 12%),
+      radial-gradient(circle at 80% 90%, rgba(255,255,255,0.03), transparent 10%);
+  }
+
+  /* Card */
+  .card {
+    width:100%;
+    max-width:1000px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+    border-radius:18px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    overflow:hidden;
+    border: 1px solid rgba(255,255,255,0.04);
+    display:flex;
+    gap:0;
+  }
+
+  .left {
+    width:46%;
+    min-height:420px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)),
+      url('https://images.unsplash.com/photo-1503264116251-35a269479413?auto=format&fit=crop&w=1000&q=80') center/cover no-repeat;
+    position:relative;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:28px;
+  }
+
+  .left::after{
+    content:"";
+    position:absolute; inset:0; background: linear-gradient(180deg, rgba(20,6,30,0.35), rgba(40,10,35,0.5));
+    pointer-events:none;
+  }
+
+  .title {
+    z-index:2;
+    text-align:center;
+    font-family: 'Playfair Display', serif;
+    font-size:28px;
+    color:var(--accent);
+    text-shadow: 0 6px 30px rgba(0,0,0,0.6);
+    margin-bottom:8px;
+  }
+  .sub { z-index:2; opacity:0.9; margin-bottom:14px; font-size:14px; color:#ffeef6; }
+
+  .cover {
+    width:220px; height:220px; border-radius:12px; overflow:hidden; z-index:2;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+    transform: translateY(0);
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .cover img{width:100%; height:100%; object-fit:cover; display:block; filter: saturate(0.95) contrast(1.02);}
+
+  /* Right area: lyrics and controls */
+  .right {
+    width:54%;
+    padding:18px 22px;
+    display:flex; flex-direction:column; gap:12px;
+  }
+
+  .controls {
+    display:flex; gap:10px; align-items:center; justify-content:space-between;
+  }
+
+  .controls-left { display:flex; gap:10px; align-items:center; }
+  .btn {
+    background: linear-gradient(90deg,#6a0dad,#ff69b4);
+    color:#fff; border:none; padding:10px 16px; border-radius:10px; cursor:pointer; font-weight:600;
+    box-shadow: 0 8px 18px rgba(106,13,173,0.18);
+  }
+  .btn.secondary{ background: rgba(255,255,255,0.04); color:#fff; padding:8px 12px; border:1px solid rgba(255,255,255,0.05); box-shadow:none;}
+  .btn.small{ padding:6px 10px; font-size:14px; border-radius:8px;}
+  .range { accent-color:#ff7bbf; width:160px; }
+
+  .nowtime { font-size:13px; opacity:0.9; }
+
+  .lyrics-wrap {
+    height:420px; overflow:auto; padding:12px; border-radius:10px; background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));
+    border:1px solid rgba(255,255,255,0.02);
+  }
+
+  .line {
+    padding:8px 10px; margin:8px 0; border-radius:8px; cursor:pointer; transition:all .18s ease;
+    color: #fff; opacity:0.85; font-size:18px; line-height:1.3;
+  }
+  .line:hover { transform: translateX(6px); opacity:1; background: rgba(255,255,255,0.02);}
+  .line.current {
+    color: #111;
+    background: linear-gradient(90deg,#ffd6e0,#ffcfe8);
+    font-weight:700;
+    box-shadow: 0 12px 24px rgba(255,120,160,0.08);
+    transform: scale(1.02);
+  }
+  .timestamp { font-size:12px; opacity:0.6; margin-left:8px; }
+
+  .editor {
+    display:flex; gap:8px; align-items:center; justify-content:flex-end;
+  }
+  .note { font-size:13px; opacity:0.85; }
+
+  .footer {
+    display:flex; justify-content:space-between; align-items:center; gap:12px; padding-top:6px;
+  }
+
+  /* responsive */
+  @media (max-width:900px){
+    .card{ flex-direction:column; }
+    .left, .right { width:100%;}
+    .left{min-height:260px;}
+    .lyrics-wrap{height:320px;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div style="text-align:center; margin-bottom:6px;">
+    <h2 style="margin:0; font-family:'Playfair Display',serif; color:#ffd6e0;">Karaoke — Bóng Phù Hoa</h2>
+    <div style="color:#ffdfe9; opacity:0.9; font-size:14px;">Tác giả/performer: Phương Mỹ Chi — (bạn có thể chỉnh timestamp bằng tay)</div>
+  </div>
+
+  <div class="card" role="application" aria-label="Karaoke card">
+    <div class="left" aria-hidden="false">
+      <div class="title">Bóng Phù Hoa</div>
+      <div class="sub">Phiên bản karaoke — Tổ 3 / Lớp 7/3</div>
+      <div class="cover" style="margin-top:10px;">
+        <img src="https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=800&q=80" alt="cover">
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="controls">
+        <div class="controls-left">
+          <button id="play" class="btn">▶ Phát</button>
+          <button id="pause" class="btn secondary small">⏸ Tạm dừng</button>
+          <button id="stop" class="btn secondary small">■ Dừng</button>
+
+          <label class="nowtime" style="margin-left:12px;">0:00 / 0:00</label>
+        </div>
+
+        <div style="display:flex; gap:10px; align-items:center;">
+          <input id="seek" class="range" type="range" min="0" max="100" value="0" />
+          <select id="speed" class="btn secondary small" title="Tốc độ">
+            <option value="0.8">0.8×</option>
+            <option value="1" selected>1×</option>
+            <option value="1.2">1.2×</option>
+            <option value="1.5">1.5×</option>
+          </select>
+          <input id="volume" class="range" type="range" min="0" max="1" step="0.01" value="0.85" title="Volume" />
+        </div>
+      </div>
+
+      <div class="lyrics-wrap" id="lyricsWrap" tabindex="0" aria-live="polite" aria-atomic="true">
+        <!-- lyric lines inserted by JS -->
+      </div>
+
+      <div class="footer">
+        <div class="editor">
+          <button id="setTime" class="btn small secondary">Set time (gán thời điểm cho dòng chọn)</button>
+          <button id="exportLRC" class="btn small">Export .lrc</button>
+          <button id="resetTimes" class="btn small secondary">Reset times</button>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <div class="note">Nhấn 1 dòng để chọn -> nhấn <strong>Set time</strong> khi audio đang phát để set timestamp.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Audio: đặt file mp3 cùng folder với HTML, tên chính xác -->
+<audio id="audio" preload="auto">
+  <source id="audiosrc" src="./Bóng Phù Hoa.mp3" type="audio/mpeg">
+  Trình duyệt của bạn không hỗ trợ audio.
+</audio>
+
+<script>
+/*
+  Karaoke player with editable timestamps.
+  - If lyric timings are not exact: use Set time to adjust each line while playing.
+  - Then Export .lrc to download final timestamps.
+*/
+
+/* --- Lyric data --- 
+   Format: { t: seconds, text: '...' }
+   t: initial guesses (if unknown) or 0; user can set by clicking a line + Set time
+*/
+let lyrics = [
+  {t:0.00, text:"Đêm nghe tiếng kinh cầu bên sông"},
+  {t:8.50, text:"Thoáng nao lòng, sương khuya vắng lặng"},
+  {t:16.50, text:"Trâm rơi, liễu phai tàn"},
+  {t:22.00, text:"Chơi vơi, én xa đàn"},
+  {t:27.00, text:"Buông lơi vỡ tan một bóng hình"},
+  {t:33.50, text:"Hạt ngọc dần buông rơi trên khoé mắt"},
+  {t:39.50, text:"Tiếc trâm hoa vàng nổi trôi Hoàng Giang"},
+  {t:46.00, text:"Đoạn trường tình ta giờ như giấc chiêm bao"},
+  {t:53.50, text:"Hoài thương nhớ thôn làng"},
+  {t:59.50, text:"Nhờ chim đậu cành Nam"},
+  {t:64.00, text:"Phù hoa một kiếp trông chồng"},
+  {t:70.00, text:"Chàng mang nặng chí tang bồng"},
+  {t:76.00, text:"Ngàn đêm gối chăn, lạnh lùng đợi mong"},
+  {t:83.00, text:"Nằm mơ ngày tháng tương phùng"},
+  {t:90.00, text:"Ngờ đâu xa cách muôn trùng"},
+  {t:97.00, text:"Mộng xưa vỡ hai, sao ngang trái"},
+  {t:103.50, text:"Một bóng hình"},
+  {t:110.00, text:"Hạt ngọc dần buông rơi trên khoé mắt"},
+  {t:116.00, text:"Tiếc trâm hoa vàng nổi trôi Hoàng Giang"},
+  {t:122.00, text:"Đoạn trường tình ta giờ như giấc chiêm bao"},
+  {t:129.00, text:"Hoài thương nhớ thôn làng"},
+  {t:135.00, text:"Nhờ chim đậu cành Nam"},
+  {t:140.50, text:"Phù hoa một kiếp trông chồng"},
+  {t:147.00, text:"Chàng mang nặng chí tang bồng"},
+  {t:153.50, text:"Ngàn đêm gối chăn lạnh lùng đợi mong"},
+  {t:160.00, text:"Nằm mơ ngày tháng tương phùng"},
+  {t:166.50, text:"Ngờ đâu xa cách muôn trùng"},
+  {t:173.50, text:"Mộng xưa vỡ hai, sao ngang trái"},
+  {t:180.00, text:"(Huh, huh-huh-huh-huh)"},
+  {t:189.00, text:"(Huh-huh-huh-huh-huh)"},
+  {t:195.00, text:"(Hah-hah)"},
+  {t:199.00, text:"Sự đời nước mắt soi gương"},
+  {t:205.50, text:"Còn thương phải nói hết thương tỏ lời"},
+  {t:212.00, text:"Chuyện người con gái Nam Xương"},
+  {t:218.50, text:"Vỡ tan mối tình vì một bóng hình"},
+  {t:225.00, text:"(Lặp lại phần điệp khúc / kết)"},
+];
+
+/* --- DOM refs --- */
+const audio = document.getElementById('audio');
+const playBtn = document.getElementById('play');
+const pauseBtn = document.getElementById('pause');
+const stopBtn = document.getElementById('stop');
+const seek = document.getElementById('seek');
+const speed = document.getElementById('speed');
+const volume = document.getElementById('volume');
+const lyricsWrap = document.getElementById('lyricsWrap');
+const nowtimeLabel = document.querySelector('.nowtime');
+const setTimeBtn = document.getElementById('setTime');
+const exportBtn = document.getElementById('exportLRC');
+const resetBtn = document.getElementById('resetTimes');
+
+let currentIndex = -1;
+let selectedIndex = null;
+let duration = 0;
+
+/* Populate lyric DOM */
+function renderLyrics(){
+  lyricsWrap.innerHTML = '';
+  lyrics.forEach((l,i) => {
+    const div = document.createElement('div');
+    div.className = 'line';
+    div.dataset.index = i;
+    div.innerHTML = `<span class="txt">${escapeHtml(l.text)}</span> <span class="timestamp">${formatTime(l.t)}</span>`;
+    div.tabIndex = 0;
+    div.addEventListener('click', ()=> {
+      selectLine(i);
+    });
+    div.addEventListener('keydown', (e)=> {
+      if(e.key === 'Enter') selectLine(i);
+    });
+    lyricsWrap.appendChild(div);
+  });
+}
+function escapeHtml(s){ return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+function formatTime(sec){
+  if(!isFinite(sec) || sec < 0) return '--:--';
+  const m = Math.floor(sec/60);
+  const s = Math.floor(sec%60);
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+
+/* selection */
+function selectLine(i){
+  selectedIndex = i;
+  const nodes = lyricsWrap.querySelectorAll('.line');
+  nodes.forEach(n=> n.classList.toggle('selected', n.dataset.index==i));
+  // scroll to it
+  const node = nodes[i];
+  if(node) node.scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+/* highlight according to current time */
+function updateHighlight(){
+  if(!duration) return;
+  const t = audio.currentTime;
+  // find last lyric with time <= t
+  let idx = -1;
+  for(let i=0;i<lyrics.length;i++){
+    if(typeof lyrics[i].t === 'number' && lyrics[i].t <= t + 0.15) idx = i;
+    else break;
+  }
+  if(idx !== currentIndex){
+    // update classes
+    const nodes = lyricsWrap.querySelectorAll('.line');
+    if(currentIndex >= 0 && nodes[currentIndex]) nodes[currentIndex].classList.remove('current');
+    if(idx >= 0 && nodes[idx]) nodes[idx].classList.add('current');
+    currentIndex = idx;
+    if(idx >= 0){
+      // center current line
+      const el = nodes[idx];
+      const rect = lyricsWrap.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      // auto scroll smoothly if below/above
+      el.scrollIntoView({behavior:'smooth', block:'center'});
+    }
+  }
+  // update UI time and seek
+  const perc = duration ? (t/duration*100) : 0;
+  seek.value = perc;
+  nowtimeLabel.textContent = `${formatTime(t)} / ${formatTime(duration)}`;
+}
+
+/* buttons */
+playBtn.addEventListener('click', ()=>{
+  audio.play().catch(()=>{ /* autoplay block */ });
+  playBtn.textContent = '▶ Đang phát';
+});
+pauseBtn.addEventListener('click', ()=>{ audio.pause(); playBtn.textContent='▶ Phát'; });
+stopBtn.addEventListener('click', ()=>{ audio.pause(); audio.currentTime = 0; playBtn.textContent='▶ Phát'; });
+
+seek.addEventListener('input', ()=>{
+  if(!duration) return;
+  const t = (seek.value/100)*duration;
+  audio.currentTime = t;
+});
+speed.addEventListener('change', ()=>{ audio.playbackRate = Number(speed.value); });
+volume.addEventListener('input', ()=>{ audio.volume = Number(volume.value); });
+
+/* set time for selected line */
+setTimeBtn.addEventListener('click', ()=>{
+  if(selectedIndex === null){ alert('Chọn 1 dòng trước khi set time.'); return; }
+  const t = audio.currentTime;
+  lyrics[selectedIndex].t = t;
+  // update timestamp display
+  const node = lyricsWrap.querySelector(`.line[data-index="${selectedIndex}"]`);
+  if(node) node.querySelector('.timestamp').textContent = formatTime(t);
+  // auto advance selection to next line
+  if(selectedIndex < lyrics.length-1) selectLine(selectedIndex+1);
+});
+
+/* export as LRC */
+exportBtn.addEventListener('click', ()=>{
+  const header = `[ti:Bóng Phù Hoa]\n[ar:Phương Mỹ Chi]\n[al:]\n[by:Nguyễn Thế Minh]\n`;
+  const lines = lyrics
+    .map(l => {
+      if(typeof l.t !== 'number' || isNaN(l.t)) return '';
+      const mm = String(Math.floor(l.t/60)).padStart(2,'0');
+      const ss = String(Math.floor(l.t%60)).padStart(2,'0');
+      const cs = String(Math.floor((l.t - Math.floor(l.t))*100)).padStart(2,'0');
+      return `[${mm}:${ss}.${cs}]${l.text}`;
+    })
+    .filter(Boolean)
+    .join('\n');
+  const content = header + lines;
+  const blob = new Blob([content], {type:'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Bong Phu Hoa.lrc';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+/* reset times to evenly spaced guesses */
+resetBtn.addEventListener('click', ()=>{
+  const step = 6; // seconds
+  lyrics.forEach((l,i)=> l.t = i*step);
+  renderLyrics();
+});
+
+/* render initially */
+renderLyrics();
+
+/* update on audio events */
+audio.addEventListener('loadedmetadata', ()=>{
+  duration = audio.duration;
+  // if duration available and lyric times are zero, leave as-is (user can set)
+});
+audio.addEventListener('timeupdate', updateHighlight);
+audio.addEventListener('seeked', updateHighlight);
+audio.addEventListener('ended', ()=>{
+  playBtn.textContent='▶ Phát';
+});
+
+/* keyboard support: space toggles play/pause */
+document.addEventListener('keydown', (e)=>{
+  if(e.code === 'Space' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA'){
+    e.preventDefault();
+    if(audio.paused) audio.play(); else audio.pause();
+  }
+});
+
+/* clicking a lyric also jumps audio to that time */
+lyricsWrap.addEventListener('dblclick', (e)=>{
+  const el = e.target.closest('.line');
+  if(!el) return;
+  const i = Number(el.dataset.index);
+  if(isFinite(lyrics[i].t)){
+    audio.currentTime = lyrics[i].t;
+    audio.play();
+  } else {
+    alert('Dòng này chưa có timestamp. Dùng Set time khi audio đang phát để gán.');
+  }
+});
+
+/* ensure the audio src exists; otherwise show helpful message */
+function checkAudio(){
+  const src = document.getElementById('audiosrc').src;
+  if(!src || src.endsWith('undefined') ){
+    alert('Không tìm thấy file âm thanh. Đặt file mp3 cùng thư mục và đổi tên thành "Bóng Phù Hoa.mp3" hoặc chỉnh đường dẫn trong HTML.');
+  }
+}
+checkAudio();
+
+/* accessibility: announce current line change */
+let lastAnnounced = -1;
+setInterval(()=>{
+  if(currentIndex !== lastAnnounced && currentIndex >=0){
+    const txt = lyrics[currentIndex].text;
+    // use aria-live via lyricsWrap already - update visually is enough
+    lastAnnounced = currentIndex;
+  }
+},400);
+
+/* on load: try to load audio and set volume */
+window.addEventListener('load', ()=>{
+  audio.volume = Number(volume.value);
+});
+</script>
+</body>
+</html>
